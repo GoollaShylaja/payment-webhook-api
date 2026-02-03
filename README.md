@@ -423,11 +423,9 @@ curl -X DELETE http://localhost:8080/api/webhooks/1
 
 Spring Boot DevTools is already included:
 
-
 mvn spring-boot:run
 
 # Edit code and save - application auto-restarts!
-
 
 ### Database Schema
 
@@ -447,7 +445,7 @@ For issues or questions:
 3. Check application logs for detailed errors
 4. Verify all prerequisites are installed correctly
 
-Future Improvements
+**Future Improvements**
 Idempotency (Design Consideration)
 
 Each payment is treated as an independent transaction. For example, using the same card on different days will create separate payment records, which is expected behavior in payment systems.
