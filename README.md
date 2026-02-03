@@ -48,7 +48,7 @@ This application provides:
 ### Step 3: Clone and Build
 
   # Clone the repository
-  git clone <your-repo-url>
+  git clone https://github.com/GoollaShylaja/payment-webhook-api
   cd payment-webhook-api
 
   # Build the project
