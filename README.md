@@ -446,3 +446,12 @@ For issues or questions:
 2. Review additional documentation files
 3. Check application logs for detailed errors
 4. Verify all prerequisites are installed correctly
+
+Future Improvements
+Idempotency (Design Consideration)
+
+Each payment is treated as an independent transaction. For example, using the same card on different days will create separate payment records, which is expected behavior in payment systems.
+
+However, duplicate API requests sent within a short time window (due to user double-clicks, network retries, or client-side issues) can result in unintended duplicate charges. Preventing this typically requires idempotency.
+
+Idempotency is an industry-standard approach used by payment providers such as Stripe and PayPal, where repeated requests with the same idempotency key result in only one payment being created. While idempotency is not implemented in this version of the application, the system is designed to support it as a future enhancement.
