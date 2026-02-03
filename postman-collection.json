@@ -1,0 +1,120 @@
+{
+    "info": {
+      "name": "Payment Webhook API",
+      "description": "Collection for testing Payment Webhook API endpoints",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Payments",
+        "item": [
+          {
+            "name": "Create Payment",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"zipCode\": \"12345\",\n  \"cardNumber\": \"4532015112830366\"\n}"
+              },
+              "url": {
+                "raw": "http://localhost:8080/api/payments",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "8080",
+                "path": ["api", "payments"]
+              },
+              "description": "Create a new payment with encrypted card storage"
+            }
+          },
+          {
+            "name": "Create Payment - Extended Zip",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"zipCode\": \"12345-6789\",\n  \"cardNumber\": \"5425233430109903\"\n}"
+              },
+              "url": {
+                "raw": "http://localhost:8080/api/payments",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "8080",
+                "path": ["api", "payments"]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Webhooks",
+        "item": [
+          {
+            "name": "Register Webhook",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"url\": \"https://webhook.site/your-unique-id\",\n  \"description\": \"Test webhook endpoint\"\n}"
+              },
+              "url": {
+                "raw": "http://localhost:8080/api/webhooks",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "8080",
+                "path": ["api", "webhooks"]
+              },
+              "description": "Register a new webhook endpoint"
+            }
+          },
+          {
+            "name": "Get All Webhooks",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "http://localhost:8080/api/webhooks",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "8080",
+                "path": ["api", "webhooks"]
+              },
+              "description": "Retrieve all registered webhooks"
+            }
+          },
+          {
+            "name": "Delete Webhook",
+            "request": {
+              "method": "DELETE",
+              "header": [],
+              "url": {
+                "raw": "http://localhost:8080/api/webhooks/1",
+                "protocol": "http",
+                "host": ["localhost"],
+                "port": "8080",
+                "path": ["api", "webhooks", "1"]
+              },
+              "description": "Delete a webhook by ID"
+            }
+          }
+        ]
+      }
+    ]
+  }

@@ -1,0 +1,472 @@
+openapi: 3.0.3
+info:
+  title: Payment Webhook API
+  description: |
+    API for managing payments with encrypted card storage and dynamic webhook notifications.
+    
+    ## Features
+    - Secure payment processing with AES-256 encrypted card storage
+    - Dynamic webhook registration for real-time notifications
+    - Resilient webhook delivery with automatic retry mechanism
+    - RESTful design with proper HTTP status codes
+    
+    ## Webhook Notifications
+    When a payment is created, all registered active webhooks will receive a POST request with the payment details.
+    The webhook notification includes exponential backoff retry mechanism with up to 3 attempts.
+    
+  version: 1.0.0
+  contact:
+    name: Payment API Team
+    email: support@paymentapi.com
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Payments
+    description: Payment management operations
+  - name: Webhooks
+    description: Webhook registration and management
+
+paths:
+  /api/payments:
+    post:
+      tags:
+        - Payments
+      summary: Create a new payment
+      description: |
+        Creates a new payment with encrypted card information.
+        The card number is encrypted using AES-256 before storage.
+        After successful creation, all active webhooks are notified asynchronously.
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentCreateRequest'
+            examples:
+              validPayment:
+                summary: Valid payment example
+                value:
+                  firstName: John
+                  lastName: Doe
+                  zipCode: "12345"
+                  cardNumber: "4532015112830366"
+              withExtendedZip:
+                summary: Payment with extended zip code
+                value:
+                  firstName: Jane
+                  lastName: Smith
+                  zipCode: "12345-6789"
+                  cardNumber: "5425233430109903"
+      responses:
+        '201':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+              examples:
+                createdPayment:
+                  summary: Successfully created payment
+                  value:
+                    id: 1
+                    firstName: John
+                    lastName: Doe
+                    zipCode: "12345"
+                    cardNumberMasked: "****0366"
+                    createdAt: "2024-02-02T10:30:00"
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validationError:
+                  summary: Validation error example
+                  value:
+                    timestamp: "2024-02-02T10:30:00"
+                    status: 400
+                    error: "Validation Failed"
+                    message: "Invalid input data"
+                    path: "/api/payments"
+                    details:
+                      - "cardNumber: Card number must be 13-19 digits"
+                      - "zipCode: Invalid zip code format"
+                nameWithNumbers:
+                  summary: Name contains numbers
+                  value:
+                    timestamp: "2024-02-02T10:30:00"
+                    status: 400
+                    error: "Validation Failed"
+                    message: "Invalid input data"
+                    path: "/api/payments"
+                    details:
+                      - "firstName: First name must contain only letters, spaces, hyphens, and apostrophes"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/webhooks:
+    post:
+      tags:
+        - Webhooks
+      summary: Register a new webhook
+      description: |
+        Register a webhook endpoint that will receive POST notifications when payments are created.
+        The webhook URL must be accessible and should return a 2xx status code to be considered successful.
+      operationId: createWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCreateRequest'
+            examples:
+              basicWebhook:
+                summary: Basic webhook registration
+                value:
+                  url: "https://webhook.site/unique-id"
+                  description: "Primary notification endpoint"
+              withoutDescription:
+                summary: Webhook without description
+                value:
+                  url: "https://example.com/webhook"
+      responses:
+        '201':
+          description: Webhook registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+              examples:
+                registeredWebhook:
+                  summary: Successfully registered webhook
+                  value:
+                    id: 1
+                    url: "https://webhook.site/unique-id"
+                    description: "Primary notification endpoint"
+                    active: true
+                    createdAt: "2024-02-02T10:30:00"
+        '400':
+          description: Invalid input data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidUrl:
+                  summary: Invalid webhook URL
+                  value:
+                    timestamp: "2024-02-02T10:30:00"
+                    status: 400
+                    error: "Validation Failed"
+                    message: "Invalid input data"
+                    path: "/api/webhooks"
+                    details:
+                      - "url: URL must start with http:// or https://"
+                missingUrl:
+                  summary: URL is missing
+                  value:
+                    timestamp: "2024-02-02T10:30:00"
+                    status: 400
+                    error: "Validation Failed"
+                    message: "Invalid input data"
+                    path: "/api/webhooks"
+                    details:
+                      - "url: URL is required"
+                descriptionTooLong:
+                  summary: Description exceeds max length
+                  value:
+                    timestamp: "2024-02-02T10:30:00"
+                    status: 400
+                    error: "Validation Failed"
+                    message: "Invalid input data"
+                    path: "/api/webhooks"
+                    details:
+                      - "description: Description must not exceed 255 characters"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serverError:
+                  summary: Internal server error
+                  value:
+                    timestamp: "2024-02-02T10:30:00"
+                    status: 500
+                    error: "Internal Server Error"
+                    message: "An unexpected error occurred"
+                    path: "/api/webhooks"
+    get:
+      tags:
+        - Webhooks
+      summary: Get all webhooks
+      description: Retrieve a list of all registered webhooks (both active and inactive)
+      operationId: getAllWebhooks
+      responses:
+        '200':
+          description: Successfully retrieved webhooks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WebhookResponse'
+              examples:
+                webhookList:
+                  summary: List of registered webhooks
+                  value:
+                    - id: 1
+                      url: "https://webhook.site/abc-123"
+                      description: "Primary endpoint"
+                      active: true
+                      createdAt: "2024-02-02T10:30:00"
+                    - id: 2
+                      url: "https://example.com/webhook"
+                      description: "Secondary endpoint"
+                      active: true
+                      createdAt: "2024-02-02T11:00:00"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serverError:
+                  summary: Internal server error
+                  value:
+                    timestamp: "2024-02-02T10:30:00"
+                    status: 500
+                    error: "Internal Server Error"
+                    message: "An unexpected error occurred"
+                    path: "/api/webhooks"
+
+  /api/webhooks/{id}:
+    delete:
+      tags:
+        - Webhooks
+      summary: Delete a webhook
+      description: Delete a webhook by its ID. This will stop notifications to this endpoint.
+      operationId: deleteWebhook
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Webhook ID
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '204':
+          description: Webhook deleted successfully
+        '404':
+          description: Webhook not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  summary: Webhook not found
+                  value:
+                    timestamp: "2024-02-02T10:30:00"
+                    status: 404
+                    error: "Not Found"
+                    message: "Webhook not found with ID: 999"
+                    path: "/api/webhooks/999"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                serverError:
+                  summary: Internal server error
+                  value:
+                    timestamp: "2024-02-02T10:30:00"
+                    status: 500
+                    error: "Internal Server Error"
+                    message: "An unexpected error occurred"
+                    path: "/api/webhooks/1"
+
+components:
+  schemas:
+    PaymentCreateRequest:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - zipCode
+        - cardNumber
+      properties:
+        firstName:
+          type: string
+          maxLength: 100
+          pattern: '^[a-zA-Z\s''-]+$'
+          description: Customer's first name (letters, spaces, hyphens, apostrophes only)
+          example: John
+        lastName:
+          type: string
+          maxLength: 100
+          pattern: '^[a-zA-Z\s''-]+$'
+          description: Customer's last name (letters, spaces, hyphens, apostrophes only)
+          example: Doe
+        zipCode:
+          type: string
+          pattern: '^[0-9]{5}(-[0-9]{4})?$'
+          description: US zip code (5 digits or 5+4 format)
+          example: "12345"
+        cardNumber:
+          type: string
+          pattern: '^[0-9]{13,19}$'
+          description: Credit card number (13-19 digits, will be encrypted)
+          example: "4532015112830366"
+
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique payment identifier
+          example: 1
+        firstName:
+          type: string
+          description: Customer's first name
+          example: John
+        lastName:
+          type: string
+          description: Customer's last name
+          example: Doe
+        zipCode:
+          type: string
+          description: Customer's zip code
+          example: "12345"
+        cardNumberMasked:
+          type: string
+          description: Masked card number (only last 4 digits visible)
+          example: "****0366"
+        createdAt:
+          type: string
+          format: date-time
+          description: Payment creation timestamp
+          example: "2024-02-02T10:30:00"
+
+    WebhookCreateRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          maxLength: 500
+          pattern: '^https?://.*'
+          description: Webhook endpoint URL (must start with http:// or https://)
+          example: "https://webhook.site/unique-id"
+        description:
+          type: string
+          maxLength: 255
+          description: Optional webhook description
+          example: "Primary notification endpoint"
+
+    WebhookResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Unique webhook identifier
+          example: 1
+        url:
+          type: string
+          description: Webhook endpoint URL
+          example: "https://webhook.site/unique-id"
+        description:
+          type: string
+          description: Webhook description
+          example: "Primary notification endpoint"
+        active:
+          type: boolean
+          description: Whether the webhook is active
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Webhook registration timestamp
+          example: "2024-02-02T10:30:00"
+
+    WebhookEvent:
+      type: object
+      description: Payload sent to webhook endpoints when a payment is created
+      properties:
+        eventType:
+          type: string
+          enum: [PAYMENT_CREATED]
+          description: Type of event
+          example: "PAYMENT_CREATED"
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+          example: "2024-02-02T10:30:00"
+        payment:
+          $ref: '#/components/schemas/PaymentResponse'
+      example:
+        eventType: "PAYMENT_CREATED"
+        timestamp: "2024-02-02T10:30:00"
+        payment:
+          id: 1
+          firstName: John
+          lastName: Doe
+          zipCode: "12345"
+          cardNumberMasked: "****0366"
+          createdAt: "2024-02-02T10:30:00"
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2024-02-02T10:30:00"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        error:
+          type: string
+          description: Error type
+          example: "Validation Failed"
+        message:
+          type: string
+          description: Error message
+          example: "Invalid input data"
+        path:
+          type: string
+          description: Request path that caused the error
+          example: "/api/webhooks"
+        details:
+          type: array
+          items:
+            type: string
+          description: Detailed error information (optional)
+          example:
+            - "url: URL is required"
