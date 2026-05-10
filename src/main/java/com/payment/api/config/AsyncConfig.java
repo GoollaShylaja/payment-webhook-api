@@ -14,9 +14,11 @@ public class AsyncConfig {
     @Bean(name = "webhookExecutor")
     public Executor webhookExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(10);
-        executor.setQueueCapacity(100);
+        // Threads can block up to ~15s during retry backoff, so pool must be large enough
+        // to handle concurrent webhook notifications without queuing.
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(20);
+        executor.setQueueCapacity(200);
         executor.setThreadNamePrefix("webhook-");
         executor.initialize();
         return executor;

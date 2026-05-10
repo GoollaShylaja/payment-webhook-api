@@ -4,9 +4,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
 
@@ -14,60 +16,61 @@ import java.util.Base64;
 public class EncryptionUtil {
 
     private static final String ALGORITHM = "AES";
-    
+    private static final String CIPHER = "AES/GCM/NoPadding";
+    private static final int IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
+
     @Value("${encryption.secret.key}")
     private String secretKey;
 
-    /**
-     * Encrypts a card number using AES-256
-     */
     public String encrypt(String cardNumber) {
         try {
+            byte[] iv = new byte[IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
+
             SecretKeySpec key = generateKey(secretKey);
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.ENCRYPT_MODE, key);
+            Cipher cipher = Cipher.getInstance(CIPHER);
+            cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
             byte[] encrypted = cipher.doFinal(cardNumber.getBytes(StandardCharsets.UTF_8));
-            return Base64.getEncoder().encodeToString(encrypted);
+
+            byte[] combined = new byte[IV_LENGTH + encrypted.length];
+            System.arraycopy(iv, 0, combined, 0, IV_LENGTH);
+            System.arraycopy(encrypted, 0, combined, IV_LENGTH, encrypted.length);
+            return Base64.getEncoder().encodeToString(combined);
         } catch (Exception e) {
             throw new RuntimeException("Error encrypting card number", e);
         }
     }
 
-    /**
-     * Decrypts an encrypted card number
-     */
     public String decrypt(String encryptedCardNumber) {
         try {
+            byte[] combined = Base64.getDecoder().decode(encryptedCardNumber);
+            byte[] iv = Arrays.copyOfRange(combined, 0, IV_LENGTH);
+            byte[] ciphertext = Arrays.copyOfRange(combined, IV_LENGTH, combined.length);
+
             SecretKeySpec key = generateKey(secretKey);
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.DECRYPT_MODE, key);
-            byte[] decrypted = cipher.doFinal(Base64.getDecoder().decode(encryptedCardNumber));
+            Cipher cipher = Cipher.getInstance(CIPHER);
+            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
+            byte[] decrypted = cipher.doFinal(ciphertext);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException("Error decrypting card number", e);
         }
     }
 
-    /**
-     * Masks a card number showing only last 4 digits
-     */
     public String maskCardNumber(String cardNumber) {
         if (cardNumber == null || cardNumber.length() < 4) {
             return "****";
         }
-        int length = cardNumber.length();
-        String lastFour = cardNumber.substring(length - 4);
-        return "****" + lastFour;
+        int maskLength = cardNumber.length() - 4;
+        String lastFour = cardNumber.substring(cardNumber.length() - 4);
+        return "*".repeat(maskLength) + lastFour;
     }
 
-    /**
-     * Generates a secret key from the provided secret
-     */
     private SecretKeySpec generateKey(String secret) throws Exception {
         MessageDigest sha = MessageDigest.getInstance("SHA-256");
-        byte[] key = secret.getBytes(StandardCharsets.UTF_8);
-        key = sha.digest(key);
-        key = Arrays.copyOf(key, 16); // Use only first 128 bits
+        byte[] key = sha.digest(secret.getBytes(StandardCharsets.UTF_8));
+        key = Arrays.copyOf(key, 32); // 256 bits for AES-256
         return new SecretKeySpec(key, ALGORITHM);
     }
 }
