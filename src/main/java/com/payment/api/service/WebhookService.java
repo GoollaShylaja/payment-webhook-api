@@ -2,6 +2,7 @@ package com.payment.api.service;
 
 import com.payment.api.dto.WebhookDTO;
 import com.payment.api.entity.Webhook;
+import com.payment.api.exception.ResourceNotFoundException;
 import com.payment.api.repository.WebhookRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +34,7 @@ public class WebhookService {
         return toResponseDTO(savedWebhook);
     }
 
+    @Transactional(readOnly = true)
     public List<WebhookDTO.Response> getAllWebhooks() {
         return webhookRepository.findAll().stream()
             .map(this::toResponseDTO)
@@ -46,12 +48,9 @@ public class WebhookService {
     @Transactional
     public void deleteWebhook(Long id) {
         log.info("Deleting webhook with ID: {}", id);
-        
-        if (!webhookRepository.existsById(id)) {
-            throw new IllegalArgumentException("Webhook not found with ID: " + id);
-        }
-        
-        webhookRepository.deleteById(id);
+        Webhook webhook = webhookRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Webhook not found with ID: " + id));
+        webhookRepository.delete(webhook);
         log.info("Webhook deleted successfully");
     }
 

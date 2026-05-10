@@ -58,14 +58,14 @@ class PaymentServiceTest {
         savedPayment.setLastName("Doe");
         savedPayment.setZipCode("12345");
         savedPayment.setCardNumberEncrypted("encrypted123");
-        savedPayment.setCardNumberMasked("****0366");
+        savedPayment.setCardNumberMasked("************0366");
         savedPayment.setCreatedAt(LocalDateTime.now());
     }
 
     @Test
     void createPayment_Success() {
         when(encryptionUtil.encrypt(anyString())).thenReturn("encrypted123");
-        when(encryptionUtil.maskCardNumber(anyString())).thenReturn("****0366");
+        when(encryptionUtil.maskCardNumber(anyString())).thenReturn("************0366");
         when(paymentRepository.save(any(Payment.class))).thenReturn(savedPayment);
 
         PaymentDTO.Response response = paymentService.createPayment(createRequest, null);
@@ -75,7 +75,7 @@ class PaymentServiceTest {
         assertEquals("John", response.getFirstName());
         assertEquals("Doe", response.getLastName());
         assertEquals("12345", response.getZipCode());
-        assertEquals("****0366", response.getCardNumberMasked());
+        assertEquals("************0366", response.getCardNumberMasked());
         assertNotNull(response.getCreatedAt());
 
         verify(encryptionUtil).encrypt("4532015112830366");
@@ -87,7 +87,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_EncryptsCardNumber() {
         when(encryptionUtil.encrypt(anyString())).thenReturn("encrypted123");
-        when(encryptionUtil.maskCardNumber(anyString())).thenReturn("****0366");
+        when(encryptionUtil.maskCardNumber(anyString())).thenReturn("************0366");
         when(paymentRepository.save(any(Payment.class))).thenReturn(savedPayment);
 
         paymentService.createPayment(createRequest, null);
@@ -98,7 +98,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_TriggersWebhookNotification() {
         when(encryptionUtil.encrypt(anyString())).thenReturn("encrypted123");
-        when(encryptionUtil.maskCardNumber(anyString())).thenReturn("****0366");
+        when(encryptionUtil.maskCardNumber(anyString())).thenReturn("************0366");
         when(paymentRepository.save(any(Payment.class))).thenReturn(savedPayment);
 
         paymentService.createPayment(createRequest, null);
@@ -109,7 +109,7 @@ class PaymentServiceTest {
     @Test
     void createPayment_WithIdempotencyKey_ReturnsCachedResponse() throws Exception {
         PaymentDTO.Response cachedResponse = new PaymentDTO.Response(
-            99L, "John", "Doe", "12345", "****0366", LocalDateTime.now()
+            99L, "John", "Doe", "12345", "************0366", LocalDateTime.now()
         );
         when(idempotencyService.getCachedResponse("key-123"))
             .thenReturn(Optional.of("{\"id\":99}"));
@@ -127,7 +127,7 @@ class PaymentServiceTest {
         when(idempotencyService.getCachedResponse("new-key")).thenReturn(Optional.empty());
         when(idempotencyService.tryReserve("new-key")).thenReturn(true);
         when(encryptionUtil.encrypt(anyString())).thenReturn("encrypted123");
-        when(encryptionUtil.maskCardNumber(anyString())).thenReturn("****0366");
+        when(encryptionUtil.maskCardNumber(anyString())).thenReturn("************0366");
         when(paymentRepository.save(any(Payment.class))).thenReturn(savedPayment);
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"id\":1}");
 

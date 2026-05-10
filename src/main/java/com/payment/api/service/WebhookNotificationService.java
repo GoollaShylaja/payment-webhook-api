@@ -126,7 +126,7 @@ public class WebhookNotificationService {
 
             String jsonPayload = objectMapper.writeValueAsString(event);
             try (OutputStream os = connection.getOutputStream()) {
-                byte[] input = jsonPayload.getBytes("utf-8");
+                byte[] input = jsonPayload.getBytes(java.nio.charset.StandardCharsets.UTF_8);
                 os.write(input, 0, input.length);
             }
 

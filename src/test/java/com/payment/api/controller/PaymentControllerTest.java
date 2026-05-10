@@ -37,7 +37,7 @@ class PaymentControllerTest {
         );
 
         PaymentDTO.Response response = new PaymentDTO.Response(
-            1L, "John", "Doe", "12345", "****0366", LocalDateTime.now()
+            1L, "John", "Doe", "12345", "************0366", LocalDateTime.now()
         );
 
         when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class), isNull()))
@@ -51,7 +51,7 @@ class PaymentControllerTest {
             .andExpect(jsonPath("$.firstName").value("John"))
             .andExpect(jsonPath("$.lastName").value("Doe"))
             .andExpect(jsonPath("$.zipCode").value("12345"))
-            .andExpect(jsonPath("$.cardNumberMasked").value("****0366"));
+            .andExpect(jsonPath("$.cardNumberMasked").value("************0366"));
     }
 
     @Test
@@ -61,7 +61,7 @@ class PaymentControllerTest {
         );
 
         PaymentDTO.Response response = new PaymentDTO.Response(
-            1L, "John", "Doe", "12345", "****0366", LocalDateTime.now()
+            1L, "John", "Doe", "12345", "************0366", LocalDateTime.now()
         );
 
         when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class), any(String.class)))
@@ -155,7 +155,7 @@ class PaymentControllerTest {
         );
 
         PaymentDTO.Response response = new PaymentDTO.Response(
-            1L, "Mary-Jane", "Smith-Jones", "12345", "****0366", LocalDateTime.now()
+            1L, "Mary-Jane", "Smith-Jones", "12345", "************0366", LocalDateTime.now()
         );
 
         when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class), isNull()))
@@ -176,7 +176,7 @@ class PaymentControllerTest {
         );
 
         PaymentDTO.Response response = new PaymentDTO.Response(
-            1L, "O'Brien", "D'Angelo", "12345", "****0366", LocalDateTime.now()
+            1L, "O'Brien", "D'Angelo", "12345", "************0366", LocalDateTime.now()
         );
 
         when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class), isNull()))

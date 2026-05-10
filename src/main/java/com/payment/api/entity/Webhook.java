@@ -19,7 +19,7 @@ public class Webhook {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "url", nullable = false, length = 500)
+    @Column(name = "url", nullable = false, unique = true, length = 500)
     private String url;
 
     @Column(name = "description", length = 255)
