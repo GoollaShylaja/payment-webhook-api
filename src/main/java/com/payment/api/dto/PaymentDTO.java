@@ -16,7 +16,7 @@ public class PaymentDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CreateRequest {
-        
+
         @NotBlank(message = "First name is required")
         @Size(max = 100, message = "First name must not exceed 100 characters")
         @Pattern(regexp = "^[a-zA-Z\\s'-]+$", message = "First name must contain only letters, spaces, hyphens, and apostrophes")
@@ -40,7 +40,7 @@ public class PaymentDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class Response {
-        
+
         private Long id;
         private String firstName;
         private String lastName;

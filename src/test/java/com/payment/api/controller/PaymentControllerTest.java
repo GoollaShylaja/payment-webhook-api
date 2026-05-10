@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -31,7 +32,6 @@ class PaymentControllerTest {
 
     @Test
     void createPayment_ValidRequest_ReturnsCreated() throws Exception {
-        // Arrange
         PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
             "John", "Doe", "12345", "4532015112830366"
         );
@@ -40,10 +40,9 @@ class PaymentControllerTest {
             1L, "John", "Doe", "12345", "****0366", LocalDateTime.now()
         );
 
-        when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class)))
+        when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class), isNull()))
             .thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(post("/api/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -56,13 +55,32 @@ class PaymentControllerTest {
     }
 
     @Test
+    void createPayment_WithIdempotencyKey_ReturnsCreated() throws Exception {
+        PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
+            "John", "Doe", "12345", "4532015112830366"
+        );
+
+        PaymentDTO.Response response = new PaymentDTO.Response(
+            1L, "John", "Doe", "12345", "****0366", LocalDateTime.now()
+        );
+
+        when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class), any(String.class)))
+            .thenReturn(response);
+
+        mockMvc.perform(post("/api/payments")
+                .header("Idempotency-Key", "test-key-123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").value(1));
+    }
+
+    @Test
     void createPayment_MissingFirstName_ReturnsBadRequest() throws Exception {
-        // Arrange
         PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
             "", "Doe", "12345", "4532015112830366"
         );
 
-        // Act & Assert
         mockMvc.perform(post("/api/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -71,12 +89,10 @@ class PaymentControllerTest {
 
     @Test
     void createPayment_InvalidCardNumber_ReturnsBadRequest() throws Exception {
-        // Arrange
         PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
-            "John", "Doe", "12345", "123"  // Too short
+            "John", "Doe", "12345", "123"
         );
 
-        // Act & Assert
         mockMvc.perform(post("/api/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -85,25 +101,22 @@ class PaymentControllerTest {
 
     @Test
     void createPayment_InvalidZipCode_ReturnsBadRequest() throws Exception {
-        // Arrange
         PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
-            "John", "Doe", "ABCDE", "4532015112830366"  // Invalid zip
+            "John", "Doe", "ABCDE", "4532015112830366"
         );
 
-        // Act & Assert
         mockMvc.perform(post("/api/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isBadRequest());
     }
+
     @Test
     void createPayment_FirstNameWithNumbers_ReturnsBadRequest() throws Exception {
-        // Arrange
         PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
-            "John123", "Doe", "12345", "4532015112830366"  // Numbers in first name
+            "John123", "Doe", "12345", "4532015112830366"
         );
 
-        // Act & Assert
         mockMvc.perform(post("/api/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -113,12 +126,10 @@ class PaymentControllerTest {
 
     @Test
     void createPayment_LastNameWithNumbers_ReturnsBadRequest() throws Exception {
-        // Arrange
         PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
-            "John", "Doe456", "12345", "4532015112830366"  // Numbers in last name
+            "John", "Doe456", "12345", "4532015112830366"
         );
 
-        // Act & Assert
         mockMvc.perform(post("/api/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -127,12 +138,10 @@ class PaymentControllerTest {
 
     @Test
     void createPayment_FirstNameWithSpecialCharacters_ReturnsBadRequest() throws Exception {
-        // Arrange
         PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
-            "John@Smith", "Doe", "12345", "4532015112830366"  // Invalid special char
+            "John@Smith", "Doe", "12345", "4532015112830366"
         );
 
-        // Act & Assert
         mockMvc.perform(post("/api/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -141,20 +150,17 @@ class PaymentControllerTest {
 
     @Test
     void createPayment_ValidNameWithHyphen_ReturnsCreated() throws Exception {
-        // Arrange
         PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
-            "Mary-Jane", "Smith-Jones", "12345", "4532015112830366"  // Valid hyphens
+            "Mary-Jane", "Smith-Jones", "12345", "4532015112830366"
         );
 
         PaymentDTO.Response response = new PaymentDTO.Response(
             1L, "Mary-Jane", "Smith-Jones", "12345", "****0366", LocalDateTime.now()
         );
 
-        
-        when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class)))
+        when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class), isNull()))
             .thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(post("/api/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
@@ -165,19 +171,17 @@ class PaymentControllerTest {
 
     @Test
     void createPayment_ValidNameWithApostrophe_ReturnsCreated() throws Exception {
-        // Arrange
         PaymentDTO.CreateRequest request = new PaymentDTO.CreateRequest(
-            "O'Brien", "D'Angelo", "12345", "4532015112830366"  // Valid apostrophes
+            "O'Brien", "D'Angelo", "12345", "4532015112830366"
         );
 
         PaymentDTO.Response response = new PaymentDTO.Response(
             1L, "O'Brien", "D'Angelo", "12345", "****0366", LocalDateTime.now()
         );
 
-        when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class)))
+        when(paymentService.createPayment(any(PaymentDTO.CreateRequest.class), isNull()))
             .thenReturn(response);
 
-        // Act & Assert
         mockMvc.perform(post("/api/payments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))

@@ -1,5 +1,6 @@
 package com.payment.api.controller;
 
+import com.payment.api.config.OpenAPIExamples;
 import com.payment.api.dto.ErrorResponse;
 import com.payment.api.dto.WebhookDTO;
 import com.payment.api.service.WebhookService;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -32,7 +34,26 @@ public class WebhookController {
     @PostMapping
     @Operation(
         summary = "Register a new webhook",
-        description = "Register a webhook endpoint that will receive payment notifications"
+        description = "Register a webhook endpoint that will receive payment notifications",
+        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = WebhookDTO.CreateRequest.class),
+                examples = {
+                    @ExampleObject(
+                        name = "Basic Webhook",
+                        summary = "Basic webhook registration",
+                        value = OpenAPIExamples.WEBHOOK_REGISTRATION_REQ_EXAMPLE
+                    ),
+                    @ExampleObject(
+                        name = "Without Description",
+                        summary = "Webhook without description",
+                        value = OpenAPIExamples.WEBHOOK_REGISTRATION_REQ_WITHOUT_DESCRIPTION
+                    )
+                }
+            )
+        )
     )
     @ApiResponses(value = {
         @ApiResponse(
@@ -41,15 +62,7 @@ public class WebhookController {
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = WebhookDTO.Response.class),
-                examples = @ExampleObject(value = """
-                    {
-                        "id": 1,
-                        "url": "https://webhook.site/unique-id",
-                        "description": "Primary notification endpoint",
-                        "active": true,
-                        "createdAt": "2026-02-02T10:30:00"
-                    }
-                """)
+                examples = @ExampleObject(value = OpenAPIExamples.WEBHOOK_RESPONSE_201_SUCCESS)
             )
         ),
         @ApiResponse(
@@ -58,16 +71,7 @@ public class WebhookController {
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = """
-                    {
-                        "timestamp": "2026-02-02T10:30:00",
-                        "status": 400,
-                        "error": "Validation Failed",
-                        "message": "Invalid input data",
-                        "path": "/api/webhooks",
-                        "details": ["url: URL must start with http:// or https://"]
-                    }
-                """)
+                examples = @ExampleObject(value = OpenAPIExamples.WEBHOOK_ERROR_400_EXAMPLE)
             )
         ),
         @ApiResponse(
@@ -76,15 +80,7 @@ public class WebhookController {
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = """
-                    {
-                        "timestamp": "2026-02-02T10:30:00",
-                        "status": 500,
-                        "error": "Internal Server Error",
-                        "message": "An unexpected error occurred",
-                        "path": "/api/webhooks"
-                    }
-                """)
+                examples = @ExampleObject(value = OpenAPIExamples.WEBHOOK_ERROR_500_EXAMPLE)
             )
         )
     })
@@ -107,24 +103,7 @@ public class WebhookController {
             content = @Content(
                 mediaType = "application/json",
                 array = @ArraySchema(schema = @Schema(implementation = WebhookDTO.Response.class)),
-                examples = @ExampleObject(value = """
-                    [
-                        {
-                            "id": 1,
-                            "url": "https://webhook.site/abc-123",
-                            "description": "Primary endpoint",
-                            "active": true,
-                            "createdAt": "2026-02-02T10:30:00"
-                        },
-                        {
-                            "id": 2,
-                            "url": "https://example.com/webhook",
-                            "description": "Secondary endpoint",
-                            "active": true,
-                            "createdAt": "2026-02-02T11:00:00"
-                        }
-                    ]
-                """)
+                examples = @ExampleObject(value =OpenAPIExamples.WEBHOOK_200_EXAMPLES)
             )
         ),
         @ApiResponse(
@@ -133,15 +112,7 @@ public class WebhookController {
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = """
-                    {
-                        "timestamp": "2026-02-02T10:30:00",
-                        "status": 500,
-                        "error": "Internal Server Error",
-                        "message": "An unexpected error occurred",
-                        "path": "/api/webhooks"
-                    }
-                """)
+                examples = @ExampleObject(value = OpenAPIExamples.WEBHOOK_ERROR_500_EXAMPLE)
             )
         )
     })
@@ -166,15 +137,7 @@ public class WebhookController {
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = """
-                    {
-                        "timestamp": "2026-02-02T10:30:00",
-                        "status": 404,
-                        "error": "Not Found",
-                        "message": "Webhook not found with ID: 999",
-                        "path": "/api/webhooks/999"
-                    }
-                """)
+                examples = @ExampleObject(value = OpenAPIExamples.WEBHOOK_404_EXAMPLE)
             )
         ),
         @ApiResponse(
@@ -183,15 +146,7 @@ public class WebhookController {
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = """
-                    {
-                        "timestamp": "2026-02-02T10:30:00",
-                        "status": 500,
-                        "error": "Internal Server Error",
-                        "message": "An unexpected error occurred",
-                        "path": "/api/webhooks/1"
-                    }
-                """)
+                examples = @ExampleObject(value = OpenAPIExamples.WEBHOOK_ERROR_500_EXAMPLE)
             )
         )
     })

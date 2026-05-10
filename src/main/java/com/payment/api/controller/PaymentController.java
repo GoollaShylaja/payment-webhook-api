@@ -1,9 +1,11 @@
 package com.payment.api.controller;
 
+import com.payment.api.config.OpenAPIExamples;
 import com.payment.api.dto.ErrorResponse;
 import com.payment.api.dto.PaymentDTO;
 import com.payment.api.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -30,25 +32,37 @@ public class PaymentController {
     @PostMapping
     @Operation(
         summary = "Create a new payment",
-        description = "Creates a new payment with encrypted card information and triggers webhook notifications"
+        description = "Creates a new payment with encrypted card information and triggers webhook notifications. "
+            + "Supply an `Idempotency-Key` header to safely retry the request — duplicate keys return "
+            + "the original response without creating a second payment.",
+        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = PaymentDTO.CreateRequest.class),
+                examples = {
+                    @ExampleObject(
+                        name = "Valid Payment",
+                        summary = "Valid payment example",
+                        value = OpenAPIExamples.PAYMENT_REQUEST_EXAMPLE
+                    ),
+                    @ExampleObject(
+                        name = "With Extended Zip",
+                        summary = "Payment with ZIP+4 format",
+                        value = OpenAPIExamples.EXTENDED_ZIP_PAYMENT_REQUEST_EXAMPLE
+                    )
+                }
+            )
+        )
     )
     @ApiResponses(value = {
         @ApiResponse(
             responseCode = "201",
-            description = "Payment created successfully",
+            description = "Payment created successfully (or idempotent replay of prior creation)",
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = PaymentDTO.Response.class),
-                examples = @ExampleObject(value = """
-                    {
-                        "id": 1,
-                        "firstName": "John",
-                        "lastName": "Doe",
-                        "zipCode": "12345",
-                        "cardNumberMasked": "****0366",
-                        "createdAt": "2026-02-02T10:30:00"
-                    }
-                """)
+                examples = @ExampleObject(value = OpenAPIExamples.PAYMENT_RESPONSE_SUCCESS)
             )
         ),
         @ApiResponse(
@@ -57,19 +71,7 @@ public class PaymentController {
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = """
-                    {
-                        "timestamp": "2026-02-02T10:30:00",
-                        "status": 400,
-                        "error": "Validation Failed",
-                        "message": "Invalid input data",
-                        "path": "/api/payments",
-                        "details": [
-                            "firstName: First name must contain only letters, spaces, hyphens, and apostrophes",
-                            "cardNumber: Card number must contain only digits and be between 13-19 characters long"
-                        ]
-                    }
-                """)
+                examples = @ExampleObject(value = OpenAPIExamples.PAYMENT_ERROR_400_EXAMPLE)
             )
         ),
         @ApiResponse(
@@ -78,22 +80,20 @@ public class PaymentController {
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorResponse.class),
-                examples = @ExampleObject(value = """
-                    {
-                        "timestamp": "2026-02-02T10:30:00",
-                        "status": 500,
-                        "error": "Internal Server Error",
-                        "message": "An unexpected error occurred",
-                        "path": "/api/payments"
-                    }
-                """)
+                examples = @ExampleObject(value = OpenAPIExamples.PAYMENT_ERROR_500_EXAMPLE)
             )
         )
     })
     public ResponseEntity<PaymentDTO.Response> createPayment(
+            @Parameter(
+                description = "Unique key to ensure idempotency. Re-sending the same key returns the "
+                    + "original response without creating a duplicate payment. Keys expire after 24 hours.",
+                example = "a3f1c2e4-7b8d-4e5f-9a0b-1c2d3e4f5a6b"
+            )
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody PaymentDTO.CreateRequest request) {
-        
-        PaymentDTO.Response response = paymentService.createPayment(request);
+
+        PaymentDTO.Response response = paymentService.createPayment(request, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
