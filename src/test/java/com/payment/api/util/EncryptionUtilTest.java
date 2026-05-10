@@ -53,11 +53,9 @@ class EncryptionUtilTest {
 
     @Test
     void maskCardNumber_ShowsLastFourDigits() {
-        // Act
+        // 16-digit card → 12 stars + last 4
         String masked = encryptionUtil.maskCardNumber(CARD_NUMBER);
-
-        // Assert
-        assertEquals("****0366", masked);
+        assertEquals("************0366", masked);
     }
 
     @Test
@@ -80,8 +78,19 @@ class EncryptionUtilTest {
 
     @Test
     void maskCardNumber_HandlesDifferentLengths() {
-        assertEquals("****1234", encryptionUtil.maskCardNumber("1234567891234"));
+        // 13 digits → 9 stars + last 4
+        assertEquals("*********1234", encryptionUtil.maskCardNumber("1234567891234"));
+        // 8 digits → 4 stars + last 4
         assertEquals("****5678", encryptionUtil.maskCardNumber("12345678"));
-        assertEquals("****0005", encryptionUtil.maskCardNumber("37828224631000005"));
+        // 17 digits → 13 stars + last 4
+        assertEquals("*************0005", encryptionUtil.maskCardNumber("37828224631000005"));
+    }
+
+    @Test
+    void encrypt_ProducesDifferentCiphertextEachTime() {
+        // AES-GCM uses a random IV — same input must never produce same output
+        String first = encryptionUtil.encrypt(CARD_NUMBER);
+        String second = encryptionUtil.encrypt(CARD_NUMBER);
+        assertNotEquals(first, second);
     }
 }
