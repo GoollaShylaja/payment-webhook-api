@@ -124,7 +124,11 @@ Content-Type: application/json
   "description": "My webhook"
 }
 ```
-> Webhook URLs must be public HTTPS/HTTP addresses. Private/internal IPs (`localhost`, `10.x.x.x`, `192.168.x.x`, etc.) are rejected.
+
+| Rule | Detail |
+|------|--------|
+| URL must be unique | Registering the same URL twice returns `400 Bad Request` |
+| URL must be public | Private/internal IPs (`localhost`, `10.x.x.x`, `192.168.x.x`, etc.) are rejected |
 
 **Response: 201 Created**
 
@@ -138,7 +142,11 @@ GET /api/webhooks
 ```
 DELETE /api/webhooks/{id}
 ```
-**Response: 204 No Content**
+
+| Response | Condition |
+|----------|-----------|
+| `204 No Content` | Webhook deleted successfully |
+| `404 Not Found` | No webhook exists with that ID |
 
 ## Idempotency
 
@@ -205,7 +213,9 @@ The circuit breaker is per webhook URL and resets on app restart.
 | Card encryption | AES-256-GCM with a random 12-byte IV per encryption |
 | Card masking | All but last 4 digits masked (e.g., `************0366`) |
 | SSRF protection | Webhook hostnames resolved and checked against private IP ranges before sending |
+| Duplicate webhooks | Unique constraint on webhook URL prevents duplicate notifications |
 | Input validation | All fields validated with `javax.validation` constraints |
+| Error responses | `ResourceNotFoundException` maps to precise 404; `IllegalArgumentException` maps to 400 |
 | Secret key | Configure via environment variable in production (see Configuration) |
 
 ## Configuration
@@ -268,6 +278,7 @@ payment-webhook-api/
 │   ├── controller/          # REST controllers + global exception handler
 │   ├── dto/                 # Request/response DTOs
 │   ├── entity/              # JPA entities (Payment, Webhook, IdempotencyRecord)
+│   ├── exception/           # ResourceNotFoundException for precise 404 handling
 │   ├── repository/          # Spring Data JPA repositories
 │   ├── service/             # Business logic (Payment, Webhook, Idempotency)
 │   └── util/                # EncryptionUtil (AES-256-GCM)
@@ -330,6 +341,12 @@ SELECT * FROM webhooks WHERE active = true;
 **Webhook rejected with "private/internal address" error:**
 - Use a public URL (e.g., [webhook.site](https://webhook.site)) for testing
 - `localhost` and private IP ranges are blocked by SSRF protection
+
+**Registering a webhook returns 400 — URL already exists:**
+- Each webhook URL must be unique — delete the existing one first or use a different URL:
+```bash
+curl -X DELETE http://localhost:8080/api/webhooks/{id}
+```
 
 **Idempotency key already in use / 500 error:**
 - The key is still in `PROCESSING` state from a failed request
